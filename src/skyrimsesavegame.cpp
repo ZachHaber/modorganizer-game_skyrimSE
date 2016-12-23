@@ -1,6 +1,32 @@
 #include "skyrimSEsavegame.h"
 
 #include <Windows.h>
+#include <lz4.h>
+
+template <typename T> void read(QDataStream &data,T &value){
+	int read  = data.read(reinterpret_cast<char*>(&value),sizeof(T));
+	      if (read != sizeof(T)) {
+        throw std::runtime_error("unexpected end of file");
+      }
+}
+
+template <> void read(QDataStream &data, QString &value)
+{
+  unsigned short length;
+  read(length);
+
+  std::vector<char> buffer(length);
+
+  read(buffer.data(), length);
+
+  value = QString::fromLatin1(buffer.data(), length);
+}
+void read(QDataStream &data, void *buff, std::size_t length){
+	int read = m_File.read(static_cast<char *>(buff), length);
+  if (read != length) {
+    throw std::runtime_error("unexpected end of file");
+  }
+}
 
 SkyrimSESaveGame::SkyrimSESaveGame(QString const &fileName, MOBase::IPluginGame const *game) :
   GamebryoSaveGame(fileName, game)
@@ -59,6 +85,37 @@ SkyrimSESaveGame::SkyrimSESaveGame(QString const &fileName, MOBase::IPluginGame 
 	file.skip<unsigned short>();
 	
 	file.readImage(width,height,320,true);
+	
+	unsigned long uncompressedSize;
+	file.read(uncompressedSize);
+	unsigned long compressedSize;
+	file.read(compressedSize);
+	
+	char* compressed=new char[compressedSize];
+	file.read(compressed,compressedSize);
+	
+	char* decompressed=new char[uncompressedSize];
+	LZ4_decompress_safe(compressed,decompressed,compressedSize,uncompressedSize);
+	delete[] compressed;
+	
+	QDataStream data(QByteArray(decompressed,uncompressedSize));
+	delete[] decompressed;
+	data.skipRawData(7);
+	
+	//unsigned long loc=7;
+	//unsigned char count=decompressed[loc++];
+	unsigned char count;
+	data.read(reinterpret_cast<char*>(&count),sizeof(count));
+	
+	for(std::size_t i=0;i<count;++i){
+		QString name;
+		read(data,name);
+		m_Game->m_Plugins.push_back(name);
+	}
+	
+	
+	
+	
 
 	//Skip reading the plugins altogether, due to problems with the save files.
 	m_Plugins.push_back("Not Working due to save game weirdness");
