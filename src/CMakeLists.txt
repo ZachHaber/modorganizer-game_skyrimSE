@@ -32,9 +32,11 @@ SET(lib_path "${project_path}/../../install/libs")
 
 INCLUDE_DIRECTORIES(${project_path}/uibase/src
                     ${project_path}/game_features/src
-                    ${project_path}/game_gamebryo/src)
+                    ${project_path}/game_gamebryo/src
+					${project_path}/../lz4/include)
 LINK_DIRECTORIES(${project_path}/uibase/build/src
-                 ${lib_path})
+                 ${lib_path}
+				 ${project_path}/../lz4/dll)
 
 ADD_DEFINITIONS(-DUNICODE -D_UNICODE)
 
@@ -44,6 +46,7 @@ TARGET_LINK_LIBRARIES(${PROJ_NAME}
                       ${Boost_LIBRARIES}
                       uibase
                       game_gamebryo
+					  liblz4
                       version)
 
 IF(MSVC)
