@@ -1,7 +1,15 @@
 #include "skyrimSEsavegame.h"
+#include "iplugingame.h"
 
 #include <Windows.h>
 #include <lz4.h>
+
+void read(QDataStream &data, void *buff, std::size_t length){
+	int read = m_File.read(static_cast<char *>(buff), length);
+  if (read != length) {
+    throw std::runtime_error("unexpected end of file");
+  }
+}
 
 template <typename T> void read(QDataStream &data,T &value){
 	int read  = data.read(reinterpret_cast<char*>(&value),sizeof(T));
@@ -21,12 +29,7 @@ template <> void read(QDataStream &data, QString &value)
 
   value = QString::fromLatin1(buffer.data(), length);
 }
-void read(QDataStream &data, void *buff, std::size_t length){
-	int read = m_File.read(static_cast<char *>(buff), length);
-  if (read != length) {
-    throw std::runtime_error("unexpected end of file");
-  }
-}
+
 
 SkyrimSESaveGame::SkyrimSESaveGame(QString const &fileName, MOBase::IPluginGame const *game) :
   GamebryoSaveGame(fileName, game)
@@ -100,17 +103,18 @@ SkyrimSESaveGame::SkyrimSESaveGame(QString const &fileName, MOBase::IPluginGame 
 	
 	QDataStream data(QByteArray(decompressed,uncompressedSize));
 	delete[] decompressed;
-	data.skipRawData(7);
+	data.skipRawData(5);
 	
 	//unsigned long loc=7;
 	//unsigned char count=decompressed[loc++];
 	unsigned char count;
-	data.read(reinterpret_cast<char*>(&count),sizeof(count));
-	
+	read(data,count);
+	//data.read(reinterpret_cast<char*>(&count),sizeof(count));
+	m_Plugins.reserve(count);
 	for(std::size_t i=0;i<count;++i){
 		QString name;
 		read(data,name);
-		m_Game->m_Plugins.push_back(name);
+		m_Plugins.push_back(name);
 	}
 	
 	
@@ -118,7 +122,7 @@ SkyrimSESaveGame::SkyrimSESaveGame(QString const &fileName, MOBase::IPluginGame 
 	
 
 	//Skip reading the plugins altogether, due to problems with the save files.
-	m_Plugins.push_back("Not Working due to save game weirdness");
+	//m_Plugins.push_back("Not Working due to save game weirdness");
 	/* //Skip a single byte to get it to the right location
 	file.skip<unsigned char>(); // form version
 	//Need to skip 14 more bytes
