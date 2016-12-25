@@ -95,16 +95,20 @@ SkyrimSESaveGame::SkyrimSESaveGame(QString const &fileName, MOBase::IPluginGame 
 	
 	char* compressed=new char[compressedSize];
 	file.read(compressed,compressedSize);
-	
-	char* decompressed=new char[uncompressedSize];
-	LZ4_decompress_safe(compressed,decompressed,compressedSize,uncompressedSize);
+	//char* decompressed=new char[uncompressedSize];
+	//LZ4_decompress_safe(compressed,decompressed,compressedSize,uncompressedSize);
+	//Using this maxPluginSize (2 byte limit on the length in bytes of the plugin names, with those same 2 bytes added in, and there is a maximum of 255 or so plugins)
+	//to decrease the amount of data that has to be read in each savefile.
+	int maxPluginSize=‭(0xffff+2)*0xff+5‬;
+	char * decompressed=new char[maxPluginSize];
+	LZ4_decompress_safe_partial(compressed,decompressed,compressedSize,maxPluginSize,uncompressedSize);
 	delete[] compressed;
 	/*QByteArray byte(decompressed,uncompressedSize);
-	QFile newFile("C:/Saves/"+getFilename().remove("C:/Users/Zachary/Documents/My Games/Skyrim Special Edition/Saves/"));
 	newFile.open(QIODevice::WriteOnly);
 	newFile.write(byte);
 	newFile.close();*/
-	QDataStream data(QByteArray(decompressed,uncompressedSize));
+	//QDataStream data(QByteArray(decompressed,uncompressedSize));
+	QDataStream data(QByteArray(decompressed,maxPluginSize));
 	delete[] decompressed;
 	data.skipRawData(5);
 	
