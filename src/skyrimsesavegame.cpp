@@ -25,7 +25,7 @@ template <> void read(QDataStream &data, QString &value)
 
   std::vector<char> buffer(length);
 
-  read(buffer.data(), length);
+  read(data, buffer.data(), length);
 
   value = QString::fromLatin1(buffer.data(), length);
 }
