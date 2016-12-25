@@ -5,7 +5,7 @@
 #include <lz4.h>
 
 void read(QDataStream &data, void *buff, std::size_t length){
-	int read = data.readRawData(static_cast<char *>(buff), length);
+	int read = data.readRawData(static_cast<char *>(buff), static_cast<int>(length));
   if (read != length) {
     throw std::runtime_error("unexpected end of file");
   }
@@ -88,27 +88,27 @@ SkyrimSESaveGame::SkyrimSESaveGame(QString const &fileName, MOBase::IPluginGame 
 	
 	file.readImage(width,height,320,true);
 	
-	unsigned long uncompressedSize;
-	file.read(uncompressedSize);
+	unsigned long maxUncompressedSize;
+	file.read(maxUncompressedSize);
 	unsigned long compressedSize;
 	file.read(compressedSize);
 	
 	char* compressed=new char[compressedSize];
 	file.read(compressed,compressedSize);
-	//char* decompressed=new char[uncompressedSize];
-	//LZ4_decompress_safe(compressed,decompressed,compressedSize,uncompressedSize);
-	//Using this maxPluginSize (2 byte limit on the length in bytes of the plugin names, with those same 2 bytes added in, and there is a maximum of 255 or so plugins)
-	//to decrease the amount of data that has to be read in each savefile.
-	int maxPluginSize=‭(0xffff+2)*0xff+5‬;
-	char * decompressed=new char[maxPluginSize];
-	LZ4_decompress_safe_partial(compressed,decompressed,compressedSize,maxPluginSize,uncompressedSize);
+
+	
+	//Using this maxPluginSize (2 byte limit on the length in bytes of the plugin names, with those same 2 bytes added in
+	// and there is a maximum of 255 or so plugins possible with an extra 5 bytes from the empty space.)
+	//to decrease the amount of data that has to be read in each savefile. Total is 16711940 (it wouldn't let me write it out in
+	//an equation
+
+	//unsigned long uncompressedSize=(65537)*255+5‬;
+	unsigned long uncompressedSize=16711940;
+	char * decompressed=new char[uncompressedSize];
+	LZ4_decompress_safe_partial(compressed,decompressed,compressedSize,uncompressedSize,maxUncompressedSize);
 	delete[] compressed;
-	/*QByteArray byte(decompressed,uncompressedSize);
-	newFile.open(QIODevice::WriteOnly);
-	newFile.write(byte);
-	newFile.close();*/
-	//QDataStream data(QByteArray(decompressed,uncompressedSize));
-	QDataStream data(QByteArray(decompressed,maxPluginSize));
+
+	QDataStream data(QByteArray(decompressed,uncompressedSize));
 	delete[] decompressed;
 	data.skipRawData(5);
 	
