@@ -5,14 +5,13 @@
 #include <lz4.h>
 
 void read(QDataStream &data, void *buff, std::size_t length){
-	int read = m_File.read(static_cast<char *>(buff), length);
+	int read = data.readRawData(static_cast<char *>(buff), length);
   if (read != length) {
     throw std::runtime_error("unexpected end of file");
   }
 }
-
 template <typename T> void read(QDataStream &data,T &value){
-	int read  = data.read(reinterpret_cast<char*>(&value),sizeof(T));
+	int read  = data.readRawData(reinterpret_cast<char*>(&value),sizeof(T));
 	      if (read != sizeof(T)) {
         throw std::runtime_error("unexpected end of file");
       }
@@ -21,7 +20,7 @@ template <typename T> void read(QDataStream &data,T &value){
 template <> void read(QDataStream &data, QString &value)
 {
   unsigned short length;
-  read(length);
+  read(data,length);
 
   std::vector<char> buffer(length);
 
@@ -100,7 +99,11 @@ SkyrimSESaveGame::SkyrimSESaveGame(QString const &fileName, MOBase::IPluginGame 
 	char* decompressed=new char[uncompressedSize];
 	LZ4_decompress_safe(compressed,decompressed,compressedSize,uncompressedSize);
 	delete[] compressed;
-	
+	/*QByteArray byte(decompressed,uncompressedSize);
+	QFile newFile("C:/Saves/"+getFilename().remove("C:/Users/Zachary/Documents/My Games/Skyrim Special Edition/Saves/"));
+	newFile.open(QIODevice::WriteOnly);
+	newFile.write(byte);
+	newFile.close();*/
 	QDataStream data(QByteArray(decompressed,uncompressedSize));
 	delete[] decompressed;
 	data.skipRawData(5);
